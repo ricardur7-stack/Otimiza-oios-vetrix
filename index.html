@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>VETRIX iOS</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+}
+
+body {
+  background: linear-gradient(180deg, #0f0f10, #000);
+  color:white;
+}
+
+/* LOGIN */
+#login {
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.card {
+  width:90%;
+  max-width:340px;
+  padding:30px;
+  border-radius:28px;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(25px);
+  border:1px solid rgba(255,255,255,0.08);
+  text-align:center;
+}
+
+.card h2 {
+  font-weight:600;
+  margin-bottom:20px;
+}
+
+.card input {
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  background:rgba(255,255,255,0.08);
+  color:white;
+  margin-top:10px;
+  outline:none;
+}
+
+.card button {
+  width:100%;
+  margin-top:15px;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  background:#007aff;
+  color:white;
+  font-weight:600;
+}
+
+.card button:active {
+  opacity:0.7;
+}
+
+/* PANEL */
+#panel {
+  display:none;
+  padding:20px;
+}
+
+.box {
+  max-width:420px;
+  margin:auto;
+  padding:20px;
+  border-radius:30px;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.box h3 {
+  text-align:center;
+  margin-bottom:10px;
+}
+
+#device {
+  text-align:center;
+  font-size:12px;
+  color:#aaa;
+  margin-bottom:15px;
+}
+
+/* BUTTONS */
+.btn {
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border-radius:14px;
+  border:none;
+  background:rgba(255,255,255,0.08);
+  color:white;
+  font-weight:500;
+}
+
+.btn.primary {
+  background:#007aff;
+}
+
+.btn:active {
+  transform:scale(0.96);
+}
+
+/* SLIDER */
+.slider {
+  width:100%;
+  margin-top:10px;
+}
+
+.label {
+  margin-top:15px;
+  font-size:13px;
+  color:#ccc;
+}
+
+/* STATUS */
+#status {
+  text-align:center;
+  font-size:12px;
+  margin-top:10px;
+  color:#00ffcc;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <div class="card">
+    <h2>VETRIX</h2>
+    <input type="text" id="keyInput" placeholder="Digite sua KEY">
+    <button onclick="entrar()">Entrar</button>
+    <p id="msg"></p>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="box">
+    <h3>iOS PANEL</h3>
+
+    <p id="device"></p>
+    <p id="status"></p>
+
+    <button class="btn" onclick="basic()">Modo Básico</button>
+    <button class="btn" onclick="pro()">Modo Avançado</button>
+
+    <p class="label">FPS</p>
+    <input type="range" min="30" max="120" value="60" class="slider" id="fps" oninput="fpsUpdate()">
+    <p id="fpsTxt">60 FPS</p>
+
+    <p class="label">Delay</p>
+    <input type="range" min="0" max="100" value="0" class="slider" id="delay" oninput="delayUpdate()">
+    <p id="delayTxt">0%</p>
+
+    <button class="btn primary" onclick="apply()">Aplicar</button>
+    <button class="btn" onclick="abrirFF()">Abrir Free Fire</button>
+    <button class="btn" onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<script>
+// FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyBlug6Fm9HjfWaaMOUHGNJVHpW97BvBF-g",
+    authDomain: "vetrix7-1d0cd.firebaseapp.com",
+    databaseURL: "https://vetrix7-1d0cd-default-rtdb.firebaseio.com",
+    projectId: "vetrix7-1d0cd"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// AUTO LOGIN
+const savedKey = localStorage.getItem("vetrix_key_ios");
+if (savedKey) validarKey(savedKey);
+
+// LOGIN
+function entrar() {
+    const key = document.getElementById("keyInput").value.trim();
+    validarKey(key);
+}
+
+// VALIDAR KEY
+function validarKey(key) {
+    let valid = false;
+
+    db.ref("keys").once("value", snap => {
+        snap.forEach(s => {
+            const data = s.val();
+
+            if (data.key === key) {
+                const now = new Date();
+                const exp = new Date(data.expiresAt);
+
+                if (now <= exp) {
+                    valid = true;
+
+                    localStorage.setItem("vetrix_key_ios", key);
+
+                    document.getElementById("login").style.display = "none";
+                    document.getElementById("panel").style.display = "block";
+
+                    document.getElementById("device").innerText =
+                      navigator.userAgent;
+
+                    document.getElementById("status").innerText =
+                      "Licença ativa até " + exp.toLocaleDateString();
+                }
+            }
+        });
+
+        if (!valid) {
+            document.getElementById("msg").innerText = "Key inválida ou expirada";
+        }
+    });
+}
+
+// LOGOUT
+function logout() {
+    localStorage.removeItem("vetrix_key_ios");
+    location.reload();
+}
+
+// UI
+function fpsUpdate() {
+  document.getElementById("fpsTxt").innerText =
+    document.getElementById("fps").value + " FPS";
+}
+
+function delayUpdate() {
+  document.getElementById("delayTxt").innerText =
+    document.getElementById("delay").value + "%";
+}
+
+function basic() {
+  event.target.innerText = "Ativado ✓";
+}
+
+function pro() {
+  event.target.innerText = "Avançado ✓";
+}
+
+function apply() {
+  event.target.innerText = "Aplicado ✓";
+}
+
+// iOS NÃO abre Free Fire via intent
+function abrirFF() {
+  alert("Abra o Free Fire manualmente no iOS.");
+}
+</script>
+
+</body>
+</html>
